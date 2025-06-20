@@ -7,6 +7,8 @@ import (
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+
+	container "lazycontainer/pkg/container"
 )
 
 var baseStyle = lipgloss.NewStyle().
@@ -14,7 +16,8 @@ var baseStyle = lipgloss.NewStyle().
 	BorderForeground(lipgloss.Color("240"))
 
 type model struct {
-	table table.Model
+	table      table.Model
+	containers []container.Container
 }
 
 func (m model) Init() tea.Cmd {
@@ -36,8 +39,17 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "q", "ctrl+c":
 			return m, tea.Quit
 		case "enter":
+			index := m.table.Cursor()
+			containerSelected := m.containers[index]
+			containerLogs, err := container.GetLogs(containerSelected.ID)
+			if err != nil {
+				return m, tea.Batch(
+					tea.Printf("Error reading logs for container %s: %v", containerSelected.ID, err),
+				)
+			}
+
 			return m, tea.Batch(
-				tea.Printf("Logs for container %s", m.table.SelectedRow()[1]),
+				tea.Printf("Logs for container %s", containerLogs),
 			)
 		}
 	}
@@ -56,12 +68,14 @@ func main() {
 		{Title: "", Width: 10},
 	}
 
-	rows := []table.Row{
-		{"Running", "redis"},
-		{"Stopped", "postgres"},
-		{"Running", "nginx"},
-		{"Running", "mysql"},
-		{"Stopped", "mongodb"},
+	containers, err := container.ListAll()
+	if err != nil {
+		fmt.Println("Error listing containers:", err)
+	}
+
+	rows := []table.Row{}
+	for _, c := range containers {
+		rows = append(rows, table.Row{c.State, c.Image})
 	}
 
 	t := table.New(
@@ -83,7 +97,7 @@ func main() {
 		Bold(false)
 	t.SetStyles(s)
 
-	m := model{t}
+	m := model{t, containers}
 	if _, err := tea.NewProgram(m).Run(); err != nil {
 		fmt.Println("Error running program:", err)
 		os.Exit(1)
