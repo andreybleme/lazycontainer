@@ -14,14 +14,14 @@ type Image struct {
 func ListAll() ([]Image, error) {
 	var images []Image
 
-	output, err := exec.Command("container", "image", "list").Output()
+	output, err := exec.Command("container", "images", "list").Output()
 	if err != nil {
 		return nil, err
 	}
 
 	// NAME, TAG, DIGEST
 	lines := strings.Split(strings.TrimSpace(string(output)), "\n")
-	for _, line := range lines[:1] {
+	for _, line := range lines[1:] {
 		fields := strings.Fields(line)
 		// skip malformed lines
 		if len(fields) < 3 {
@@ -38,4 +38,13 @@ func ListAll() ([]Image, error) {
 	}
 
 	return images, nil
+}
+
+func GetInspect(name string) (string, error) {
+	output, err := exec.Command("container", "images", "inspect", name).Output()
+	if err != nil {
+		return "Error inspecting image", err
+	}
+
+	return string(output), nil
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	container "lazycontainer/pkg/container"
+	image "lazycontainer/pkg/image"
 )
 
 var baseStyle = lipgloss.NewStyle().
@@ -16,8 +17,10 @@ var baseStyle = lipgloss.NewStyle().
 	BorderForeground(lipgloss.Color("240"))
 
 type model struct {
-	table      table.Model
-	containers []container.Container
+	containersTable table.Model
+	containers      []container.Container
+	imageTable      table.Model
+	images          []image.Image
 }
 
 func (m model) Init() tea.Cmd {
@@ -30,57 +33,87 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "esc":
-			if m.table.Focused() {
-				m.table.Blur()
-			} else {
-				m.table.Focus()
+		case "tab":
+			if m.containersTable.Focused() {
+				m.containersTable.Blur()
+				m.imageTable.Focus()
+			} else if m.imageTable.Focused() {
+				m.imageTable.Blur()
+				m.containersTable.Focus()
 			}
 		case "q", "ctrl+c":
 			return m, tea.Quit
 		case "enter":
-			index := m.table.Cursor()
-			containerSelected := m.containers[index]
-			containerLogs, err := container.GetLogs(containerSelected.ID)
-			if err != nil {
+			// containers table actions
+			if m.containersTable.Focused() {
+				index := m.containersTable.Cursor()
+				containerSelected := m.containers[index]
+				containerLogs, err := container.GetLogs(containerSelected.ID)
+
+				if err != nil {
+					return m, tea.Batch(
+						tea.Printf("Error reading logs for container %s: %v", containerSelected.ID, err),
+					)
+				}
+
+				if containerLogs == "" {
+					return m, tea.Batch(
+						tea.Printf("No logs available"),
+					)
+				}
+
 				return m, tea.Batch(
-					tea.Printf("Error reading logs for container %s: %v", containerSelected.ID, err),
+					tea.Printf("Logs for container %s", containerLogs),
 				)
 			}
+			// images table actions
+			if m.imageTable.Focused() {
+				imageDetails, err := image.GetInspect(m.imageTable.SelectedRow()[0])
+				if err != nil {
+					return m, tea.Batch(
+						tea.Printf("Error inspecting image %s: %v", m.imageTable.SelectedRow()[0], err),
+					)
+				}
 
-			return m, tea.Batch(
-				tea.Printf("Logs for container %s", containerLogs),
-			)
+				return m, tea.Batch(
+					tea.Printf("Image details: %s", imageDetails),
+				)
+			}
 		}
 	}
 
-	m.table, cmd = m.table.Update(msg)
+	if m.containersTable.Focused() {
+		m.containersTable, cmd = m.containersTable.Update(msg)
+	} else if m.imageTable.Focused() {
+		m.imageTable, cmd = m.imageTable.Update(msg)
+	}
 	return m, cmd
 }
 
 func (m model) View() string {
-	return baseStyle.Render(m.table.View()) + "\n"
+	return baseStyle.Render(m.containersTable.View()) + "\n" + baseStyle.Render(m.imageTable.View()) + "\n"
 }
 
 func main() {
-	columns := []table.Column{
-		{Title: "Containers", Width: 10},
-		{Title: "", Width: 10},
-	}
-
+	// containers table
 	containers, err := container.ListAll()
 	if err != nil {
 		fmt.Println("Error listing containers:", err)
 	}
 
-	rows := []table.Row{}
+	containerRows := []table.Row{}
 	for _, c := range containers {
-		rows = append(rows, table.Row{c.State, c.Image})
+		containerRows = append(containerRows, table.Row{c.State, c.Image})
 	}
 
-	t := table.New(
-		table.WithColumns(columns),
-		table.WithRows(rows),
+	containerColumns := []table.Column{
+		{Title: "Containers", Width: 10},
+		{Title: "", Width: 20},
+	}
+
+	containersTable := table.New(
+		table.WithColumns(containerColumns),
+		table.WithRows(containerRows),
 		table.WithFocused(true),
 		table.WithHeight(5),
 	)
@@ -95,9 +128,33 @@ func main() {
 		Foreground(lipgloss.Color("229")).
 		Background(lipgloss.Color("57")).
 		Bold(false)
-	t.SetStyles(s)
+	containersTable.SetStyles(s)
 
-	m := model{t, containers}
+	// Images table
+	images, err := image.ListAll()
+	if err != nil {
+		fmt.Println("Error listing images:", err)
+	}
+
+	imageRows := []table.Row{}
+	for _, image := range images {
+		imageRows = append(imageRows, table.Row{image.Name, image.Tag})
+	}
+
+	imageColumns := []table.Column{
+		{Title: "Images", Width: 10},
+		{Title: "", Width: 20},
+	}
+
+	imageTable := table.New(
+		table.WithColumns(imageColumns),
+		table.WithRows(imageRows),
+		table.WithFocused(false),
+		table.WithHeight(5),
+	)
+	imageTable.SetStyles(s)
+
+	m := model{containersTable, containers, imageTable, nil}
 	if _, err := tea.NewProgram(m).Run(); err != nil {
 		fmt.Println("Error running program:", err)
 		os.Exit(1)
