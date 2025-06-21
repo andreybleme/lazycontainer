@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
@@ -21,6 +22,7 @@ type model struct {
 	containers      []container.Container
 	imageTable      table.Model
 	images          []image.Image
+	infoBox         string
 }
 
 func (m model) Init() tea.Cmd {
@@ -48,36 +50,31 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.containersTable.Focused() {
 				index := m.containersTable.Cursor()
 				containerSelected := m.containers[index]
-				containerLogs, err := container.GetLogs(containerSelected.ID)
-
+				containerDetails, err := container.GetDetails(containerSelected.ID)
 				if err != nil {
-					return m, tea.Batch(
-						tea.Printf("Error reading logs for container %s: %v", containerSelected.ID, err),
+					m.infoBox = fmt.Sprintf("Error inspecting container %s: %v", containerSelected.ID, err)
+				} else {
+					m.infoBox = fmt.Sprintf("ID: %s \nImage: %s \nCPU: %d \nMemory: %d \nNetworks: %s \nEnvironment: %s", containerDetails.ID, containerDetails.Image, containerDetails.CPU, containerDetails.Memory,
+						lipgloss.JoinVertical(lipgloss.Left, containerDetails.Networks...),
+						lipgloss.JoinVertical(lipgloss.Left, containerDetails.Environment...),
 					)
 				}
-
-				if containerLogs == "" {
-					return m, tea.Batch(
-						tea.Printf("No logs available"),
-					)
-				}
-
-				return m, tea.Batch(
-					tea.Printf("Logs for container %s", containerLogs),
-				)
 			}
+
 			// images table actions
 			if m.imageTable.Focused() {
-				imageDetails, err := image.GetInspect(m.imageTable.SelectedRow()[0])
+				imageDetails, err := image.GetDetails(m.imageTable.SelectedRow()[0])
 				if err != nil {
-					return m, tea.Batch(
-						tea.Printf("Error inspecting image %s: %v", m.imageTable.SelectedRow()[0], err),
-					)
+					m.infoBox = fmt.Sprintf("Error inspecting image %s: %v", m.imageTable.SelectedRow()[0], err)
+				} else {
+					createdDataTime, _ := time.Parse(time.RFC3339, imageDetails.Created)
+					// adjust to readable local date time (2025-05-29T16:02:07Z)
+					localTime := createdDataTime.Local()
+					formattedDateTime := localTime.Format("Mon, 02 Jan 2006 15:04:05 -07")
+					// convert bytes to megabytes
+					sizeMB := float64(imageDetails.Size) / (1024 * 1024)
+					m.infoBox = fmt.Sprintf("Name: %s \nID: %s \nSize: %.2fMB \nCreated: %s", imageDetails.Name, imageDetails.Id, sizeMB, formattedDateTime)
 				}
-
-				return m, tea.Batch(
-					tea.Printf("Image details: %s", imageDetails),
-				)
 			}
 		}
 	}
@@ -91,7 +88,22 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() string {
-	return baseStyle.Render(m.containersTable.View()) + "\n" + baseStyle.Render(m.imageTable.View()) + "\n"
+	tables := lipgloss.JoinVertical(lipgloss.Left,
+		baseStyle.Render(m.containersTable.View()),
+		baseStyle.Render(m.imageTable.View()),
+	)
+
+	infoBoxStyle := lipgloss.NewStyle().
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		Width(60).
+		Height(14).
+		Padding(1, 2)
+
+	return lipgloss.JoinHorizontal(lipgloss.Top,
+		tables,
+		infoBoxStyle.Render(m.infoBox),
+	)
 }
 
 func main() {
@@ -118,17 +130,17 @@ func main() {
 		table.WithHeight(5),
 	)
 
-	s := table.DefaultStyles()
-	s.Header = s.Header.
+	styleContainers := table.DefaultStyles()
+	styleContainers.Header = styleContainers.Header.
 		BorderStyle(lipgloss.NormalBorder()).
 		BorderForeground(lipgloss.Color("240")).
 		BorderBottom(true).
-		Bold(false)
-	s.Selected = s.Selected.
+		Bold(true)
+	styleContainers.Selected = styleContainers.Selected.
 		Foreground(lipgloss.Color("229")).
 		Background(lipgloss.Color("57")).
 		Bold(false)
-	containersTable.SetStyles(s)
+	containersTable.SetStyles(styleContainers)
 
 	// Images table
 	images, err := image.ListAll()
@@ -152,9 +164,20 @@ func main() {
 		table.WithFocused(false),
 		table.WithHeight(5),
 	)
-	imageTable.SetStyles(s)
 
-	m := model{containersTable, containers, imageTable, nil}
+	styleImages := table.DefaultStyles()
+	styleImages.Header = styleImages.Header.
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color("240")).
+		BorderBottom(true).
+		Bold(true)
+	styleImages.Selected = styleImages.Selected.
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("201")).
+		Bold(false)
+	imageTable.SetStyles(styleImages)
+
+	m := model{containersTable, containers, imageTable, images, ""}
 	if _, err := tea.NewProgram(m).Run(); err != nil {
 		fmt.Println("Error running program:", err)
 		os.Exit(1)
