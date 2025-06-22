@@ -6,14 +6,15 @@ A terminal UI to manage Apple Containers without stress. Written in Go with [Bub
 
 ## Requirements
 
-- Apple containers CLI **0.1.0**
+- [Apple containers](https://github.com/apple/container) CLI **0.1.0**
 
-## Installing
+## Install
 
-### Brew
-
-### Binary release
-
+### Homebrew
+```
+brew tap andreybleme/lazycontainer
+brew install lazycontainer
+```
 
 ## Usage
 
@@ -67,7 +68,7 @@ This is an alpha release, so you may find bugs and missing features. Currently, 
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a pull request or open an issue for any suggestions or improvements.
+Contributions are welcome! Feel free to submit a pull request or open an issue for any suggestions or improvements.
 
 ## License
 
