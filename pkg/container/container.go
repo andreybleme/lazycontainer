@@ -23,6 +23,14 @@ type ContainerDetails struct {
 	Environment []string
 }
 
+type NetworkInfo struct {
+	Address  string `json:"address"`
+	Network  string `json:"network"`
+	Hostname string `json:"hostname"`
+	Gateway  string `json:"gateway"`
+}
+
+type NetworksField []string
 type containerInspectRaw struct {
 	Configuration struct {
 		ID    string `json:"id"`
@@ -39,9 +47,9 @@ type containerInspectRaw struct {
 		InitProcess struct {
 			Environment []string `json:"environment"`
 		} `json:"initProcess"`
-		Networks []string `json:"networks"`
+		Networks NetworksField `json:"networks"`
 	} `json:"configuration"`
-	Networks []string `json:"networks"`
+	Networks NetworksField `json:"networks"`
 }
 
 func ListAll() ([]Container, error) {
@@ -89,12 +97,18 @@ func GetDetails(id string) (ContainerDetails, error) {
 
 	e := entries[0]
 
+	// show base configuration.networks if not set in base struct
+	networks := e.Networks
+	if len(e.Networks) == 0 {
+		networks = e.Configuration.Networks
+	}
+
 	containerDetails := ContainerDetails{
 		ID:          e.Configuration.ID,
 		Image:       e.Configuration.Image.Reference,
 		CPU:         e.Configuration.Resources.CPUs,
 		Memory:      e.Configuration.Resources.MemoryInBytes,
-		Networks:    e.Configuration.Networks,
+		Networks:    networks,
 		Environment: e.Configuration.InitProcess.Environment,
 	}
 	return containerDetails, nil
@@ -116,4 +130,24 @@ func inspect(id string) (string, error) {
 	}
 
 	return string(output), nil
+}
+
+func (nf *NetworksField) UnmarshalJSON(data []byte) error {
+	var strArr []string
+	if err := json.Unmarshal(data, &strArr); err == nil {
+		*nf = strArr
+		return nil
+	}
+
+	var objArr []NetworkInfo
+	if err := json.Unmarshal(data, &objArr); err == nil {
+		var result []string
+		for _, n := range objArr {
+			result = append(result, n.Address)
+		}
+		*nf = result
+		return nil
+	}
+
+	return fmt.Errorf("networks field is neither []string nor []NetworkInfo")
 }

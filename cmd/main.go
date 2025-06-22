@@ -120,7 +120,7 @@ func main() {
 
 	containerColumns := []table.Column{
 		{Title: "Containers", Width: 10},
-		{Title: "", Width: 20},
+		{Title: "", Width: 25},
 	}
 
 	containersTable := table.New(
@@ -155,7 +155,7 @@ func main() {
 
 	imageColumns := []table.Column{
 		{Title: "Images", Width: 10},
-		{Title: "", Width: 20},
+		{Title: "", Width: 25},
 	}
 
 	imageTable := table.New(
