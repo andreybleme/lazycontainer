@@ -1,28 +1,52 @@
-# My Go Project
+# lazycontainer
 
-This is a simple Go project that demonstrates the structure and organization of a Go application.
+A terminal UI to manage Apple Containers without stress. Written in Go with [Bubbletea](https://github.com/charmbracelet/bubbletea) 🧋
 
-## Project Structure
+![lazycontainerdemo](https://github.com/user-attachments/assets/71220800-46e3-4932-a0c0-9e4fe55ff99b)
+
+## Requirements
+
+- Apple containers CLI **0.1.0**
+
+## Installing
+
+### Brew
+
+### Binary release
+
+
+## Usage
+
+Start the terminal UI:
 
 ```
-my-go-project
-├── cmd
-│   └── main.go        # Entry point of the application
-├── pkg
-│   └── utils.go       # Utility functions
-├── go.mod             # Module dependencies
-└── go.sum             # Checksums for module dependencies
+$ lazycontainer
 ```
 
-## Getting Started
+Press `key-up` ⬆️ / `key-down` ⬇️ to navigate across containers.
 
-To get started with this project, follow these steps:
+Press `tab` to switch between containers and images.
+
+Press `enter` to select a resource (container or image) and see its details.
+
+Press `q` or `ctrl+c` to exit
+
+## Features
+
+This is an alpha release, so you may find bugs and missing features. Currently, these are the supported features:
+
+- viewing the state of containers
+- inspecting the details of a container
+- vieweing the state of images
+- inspecting the details of an image
+
+## Running 
 
 1. **Clone the repository:**
 
    ```bash
-   git clone <repository-url>
-   cd my-go-project
+   git clone https://github.com/andreybleme/lazycontainer
+   cd lazycontainer
    ```
 
 2. **Install dependencies:**
@@ -40,10 +64,6 @@ To get started with this project, follow these steps:
    ```bash
    go run cmd/main.go
    ```
-
-## Usage
-
-This project includes utility functions in the `pkg/utils.go` file that can be used throughout the application. You can modify and expand these functions as needed.
 
 ## Contributing
 
