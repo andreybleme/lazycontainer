@@ -5,10 +5,10 @@ class Lazycontainer < Formula
 
   if Hardware::CPU.intel?
     url "https://github.com/andreybleme/lazycontainer/releases/download/v0.0.1/lazycontainer_darwin_amd64"
-    sha256 "3d9e5762c68f3f03f1f42cc9880ed4b6dcdfc0bc0fa03c7a1c5d1c7d2a76e38c"
+    sha256 "a5457ddf47d9f1e714c85afdffcd2fe037f5ca130cc8d7761ff8733ab24146f9"
   else
     url "https://github.com/andreybleme/lazycontainer/releases/download/v0.0.1/lazycontainer_darwin_arm64"
-    sha256 "ec9b4186c8a3c7cc9d2cd0fc6b00226d887da69800562caa57b4593a4a8142d8"
+    sha256 "1358878c2be97fa1cced5c0baee41804ec6e7c2c45c17d563c37d79c81e1dcec"
   end
 
   def install
