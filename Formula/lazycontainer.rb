@@ -1,13 +1,13 @@
 class Lazycontainer < Formula
   desc "CLI for listing containers and viewing logs"
   homepage "https://github.com/andreybleme/lazycontainer"
-  version "1.0.0"
+  version "0.0.1"
 
   if Hardware::CPU.intel?
-    url "https://github.com/andreybleme/lazycontainer/releases/download/v1.0.0/lazycontainer_darwin_amd64"
+    url "https://github.com/andreybleme/lazycontainer/releases/download/v0.0.1/lazycontainer_darwin_amd64"
     sha256 "3d9e5762c68f3f03f1f42cc9880ed4b6dcdfc0bc0fa03c7a1c5d1c7d2a76e38c"
   else
-    url "https://github.com/andreybleme/lazycontainer/releases/download/v1.0.0/lazycontainer_darwin_arm64"
+    url "https://github.com/andreybleme/lazycontainer/releases/download/v0.0.1/lazycontainer_darwin_arm64"
     sha256 "ec9b4186c8a3c7cc9d2cd0fc6b00226d887da69800562caa57b4593a4a8142d8"
   end
 
