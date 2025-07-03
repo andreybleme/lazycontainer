@@ -6,7 +6,10 @@ A terminal UI to manage Apple Containers without stress. Written in Go with [Bub
 
 ## Requirements
 
-- [Apple containers](https://github.com/apple/container) CLI **0.1.0**
+- [Apple containers](https://github.com/apple/container) CLI **
+```sh
+brew install container # install Apple container if not yet
+```
 
 ## Install
 
