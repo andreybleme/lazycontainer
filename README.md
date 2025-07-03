@@ -13,6 +13,7 @@ A terminal UI to manage Apple Containers without stress. Written in Go with [Bub
 ### Homebrew
 ```
 brew tap andreybleme/lazycontainer https://github.com/andreybleme/lazycontainer
+brew install container # install Apple container if not yet
 brew install lazycontainer
 ```
 
