@@ -9,15 +9,15 @@ A terminal UI to manage Apple Containers without stress. Written in Go with [Bub
 - [Apple containers](https://github.com/apple/container) CLI **0.1.0**
 
 ```sh
-brew install container
+$ brew install container
 ```
 
 ## Install
 
 ### Homebrew
-```
-brew tap andreybleme/lazycontainer https://github.com/andreybleme/lazycontainer
-brew install lazycontainer
+
+```sh
+$ brew install lazycontainer
 ```
 
 ## Usage
@@ -45,7 +45,7 @@ This is an alpha release, so you may find bugs and missing features. Currently, 
 - vieweing the state of images
 - inspecting the details of an image
 
-## Running 
+## Running
 
 1. **Clone the repository:**
 
