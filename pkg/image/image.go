@@ -36,7 +36,7 @@ type imageInspectRaw struct {
 func ListAll() ([]Image, error) {
 	var images []Image
 
-	output, err := exec.Command("container", "images", "list").Output()
+	output, err := exec.Command("container", "image", "list").Output()
 	if err != nil {
 		return nil, err
 	}
@@ -92,7 +92,7 @@ func GetDetails(name string) (ImageDetails, error) {
 }
 
 func inspect(name string) (string, error) {
-	output, err := exec.Command("container", "images", "inspect", name).Output()
+	output, err := exec.Command("container", "image", "inspect", name).Output()
 	if err != nil {
 		return "Error inspecting image", err
 	}
