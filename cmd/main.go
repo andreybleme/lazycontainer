@@ -20,10 +20,20 @@ var baseStyle = lipgloss.NewStyle().
 type model struct {
 	containersTable table.Model
 	containers      []container.Container
-	imageTable      table.Model
-	images          []image.Image
-	infoBox         string
+
+	imageTable table.Model
+	images     []image.Image
+
+	infoBox string
+
+	containerTab string
 }
+
+// container tab menu constants
+const (
+	containerInfoTab = "Info"
+	containerLogsTab = "Logs"
+)
 
 func (m model) Init() tea.Cmd {
 	return nil
@@ -45,20 +55,20 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "q", "ctrl+c":
 			return m, tea.Quit
+		case "left", "right":
+			// container tab menu
+			if m.containersTable.Focused() {
+				if m.containerTab == containerInfoTab {
+					m.containerTab = containerLogsTab
+				} else {
+					m.containerTab = containerInfoTab
+				}
+				m.loadContainerTab()
+			}
 		case "enter":
 			// containers table actions
 			if m.containersTable.Focused() {
-				index := m.containersTable.Cursor()
-				containerSelected := m.containers[index]
-				containerDetails, err := container.GetDetails(containerSelected.ID)
-				if err != nil {
-					m.infoBox = fmt.Sprintf("Error inspecting container %s: %v", containerSelected.ID, err)
-				} else {
-					m.infoBox = fmt.Sprintf("ID: %s \nImage: %s \nCPU: %d \nMemory: %d \nNetworks: %s \nEnvironment: %s", containerDetails.ID, containerDetails.Image, containerDetails.CPU, containerDetails.Memory,
-						lipgloss.JoinVertical(lipgloss.Left, containerDetails.Networks...),
-						lipgloss.JoinVertical(lipgloss.Left, containerDetails.Environment...),
-					)
-				}
+				m.loadContainerTab()
 			}
 
 			// images table actions
@@ -87,6 +97,39 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
+func (m *model) loadContainerTab() {
+	index := m.containersTable.Cursor()
+	if index < 0 || index >= len(m.containers) {
+		m.infoBox = "No container selected"
+		return
+	}
+
+	containerSelected := m.containers[index]
+
+	// default tab is "Info"
+	containerDetails, err := container.GetDetails(containerSelected.ID)
+	if err != nil {
+		m.infoBox = fmt.Sprintf("Error inspecting container %s: %v", containerSelected.ID, err)
+		return
+	}
+
+	// alternative tab "Logs"
+	if m.containerTab == containerLogsTab {
+		logs, err := container.GetLogs(containerSelected.ID)
+		if err != nil {
+			m.infoBox = fmt.Sprintf("Error reading logs for container %s: %v", containerSelected.ID, err)
+			return
+		}
+		m.infoBox = logs
+		return
+	}
+
+	m.infoBox = fmt.Sprintf("ID: %s \nImage: %s \nCPU: %d \nMemory: %d \nNetworks: %s \nEnvironment: %s", containerDetails.ID, containerDetails.Image, containerDetails.CPU, containerDetails.Memory,
+		lipgloss.JoinVertical(lipgloss.Left, containerDetails.Networks...),
+		lipgloss.JoinVertical(lipgloss.Left, containerDetails.Environment...),
+	)
+}
+
 func (m model) View() string {
 	tables := lipgloss.JoinVertical(lipgloss.Left,
 		baseStyle.Render(m.containersTable.View()),
@@ -100,10 +143,39 @@ func (m model) View() string {
 		Height(14).
 		Padding(1, 2)
 
+	infoBox := m.infoBox
+	if m.containersTable.Focused() {
+		infoBox = lipgloss.JoinVertical(lipgloss.Left,
+			m.containerTabs(),
+			lipgloss.NewStyle().MaxHeight(20).Render(m.infoBox),
+		)
+	}
+
 	return lipgloss.JoinHorizontal(lipgloss.Top,
 		tables,
-		infoBoxStyle.Render(m.infoBox),
+		infoBoxStyle.Render(infoBox),
 	)
+}
+
+func (m model) containerTabs() string {
+	activeTab := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("229")).
+		Background(lipgloss.Color("57")).
+		Bold(true).
+		Padding(0, 1)
+	inactiveTab := lipgloss.NewStyle().
+		Foreground(lipgloss.Color("240")).
+		Padding(0, 1)
+
+	infoHeader := inactiveTab.Render(containerInfoTab)
+	logsHeader := inactiveTab.Render(containerLogsTab)
+	if m.containerTab == containerLogsTab {
+		logsHeader = activeTab.Render(containerLogsTab)
+	} else {
+		infoHeader = activeTab.Render(containerInfoTab)
+	}
+
+	return lipgloss.JoinHorizontal(lipgloss.Left, infoHeader, logsHeader)
 }
 
 func main() {
@@ -177,7 +249,7 @@ func main() {
 		Bold(false)
 	imageTable.SetStyles(styleImages)
 
-	m := model{containersTable, containers, imageTable, images, ""}
+	m := model{containersTable, containers, imageTable, images, "", containerInfoTab}
 	if _, err := tea.NewProgram(m).Run(); err != nil {
 		fmt.Println("Error running program:", err)
 		os.Exit(1)
