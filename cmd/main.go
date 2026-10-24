@@ -126,9 +126,16 @@ func (m *model) loadContainerTab() {
 }
 
 func (m *model) loadImageInfo() {
-	imageDetails, err := image.GetDetails(m.imageTable.SelectedRow()[0])
+	selectedRow := m.imageTable.SelectedRow()
+	if len(selectedRow) == 0 {
+		m.infoBox = "No image selected"
+		return
+	}
+
+	imageName := selectedRow[0]
+	imageDetails, err := image.GetDetails(imageName)
 	if err != nil {
-		m.infoBox = fmt.Sprintf("Error inspecting image %s: %v", m.imageTable.SelectedRow()[0], err)
+		m.infoBox = fmt.Sprintf("Error inspecting image %s: %v", imageName, err)
 	} else {
 		createdDataTime, _ := time.Parse(time.RFC3339, imageDetails.Created)
 		// adjust to readable local date time (2025-05-29T16:02:07Z)
